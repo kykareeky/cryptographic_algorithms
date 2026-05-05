@@ -219,7 +219,7 @@ def generate_valid_cardano_key(size):
             used.update([c0, c90, c180, c270])
     
     if len(key) < num_holes:
-        print(f"⚠ Не удалось сгенерировать полный ключ. Сгенерировано {len(key)} из {num_holes}")
+        print(f" Не удалось сгенерировать полный ключ. Сгенерировано {len(key)} из {num_holes}")
     
     return key
 
@@ -243,22 +243,22 @@ while True:
     try:
         size_matrix = int(size_input)
         if size_matrix % 2 != 0:
-            print("✗ Размер должен быть четным!")
+            print("[Ошибка] Размер должен быть четным!")
             size_matrix += 1
             print(f"  Используется размер: {size_matrix}")
         if size_matrix < 4:
-            print("✗ Минимальный размер - 4")
+            print("[Ошибка] Минимальный размер - 4")
             continue
         break
     except ValueError:
-        print("✗ Введите целое число!")
+        print("[Ошибка] Введите целое число!")
 
 # ----------------------------------------------------------------------------
 # Генерация ключа
 # ----------------------------------------------------------------------------
-print(f"\n⏳ Генерация случайного ключа для решетки {size_matrix}x{size_matrix}...")
+print(f"\n Генерация случайного ключа для решетки {size_matrix}x{size_matrix}...")
 key = generate_valid_cardano_key(size_matrix)
-print(f"✓ Ключ сгенерирован! Количество отверстий на один поворот: {len(key)}")
+print(f" Ключ сгенерирован! Количество отверстий на один поворот: {len(key)}")
 print(f"Позиции отверстий (0-индексация): {key}")
 
 # ============================================================================
@@ -314,7 +314,7 @@ print("\n" + "-" * 80)
 # Для сравнения нормализуем исходный текст так же, как при шифровании
 original_normalized = normalize_text(replace_special_chars(text))
 if original_normalized[:len(plain)] == plain[:len(original_normalized)]:
-    print("✓ Расшифрование успешно!")
+    print(" Расшифрование успешно!")
 else:
-    print("✗ Ошибка расшифрования!")
+    print("[Ошибка] Ошибка расшифрования!")
 print("-" * 80)
