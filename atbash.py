@@ -125,7 +125,7 @@ def main():
         print("-" * 40)
         result = atbash_cipher(prepared_text)
         print("\n" + "=" * 60)
-        print("ЗАШИФРОВАННЫЙ ТЕКСТ:")
+        print("ЗАШИФРОВАННЫЙ  ТЕКСТ:")
         print(result)
         print("=" * 60)
     else:
