@@ -1,6 +1,7 @@
 import os
 
 def replace_special_chars(text):
+    """Замена спецсимволов на буквенные маркеры"""
     replacements = {
         ',': 'зпт', '.': 'тчк', ' ': 'прб', '"': 'квч',
         "'": 'квч', '«': 'квч', '»': 'квч', '`': 'квч', '!': 'вскл'
@@ -14,16 +15,18 @@ def replace_special_chars(text):
     return ''.join(result)
 
 def restore_special_chars(text):
+    """Восстановление спецсимволов из маркеров"""
     replacements = {'зпт': ',', 'тчк': '.', 'прб': ' ', 'квч': '"', 'вскл': '!'}
     sorted_keys = sorted(replacements.keys(), key=len, reverse=True)
     result = text
     for key in sorted_keys:
-        # Заменяем как строчные, так и заглавные варианты маркеров
+        # Заменяем маркеры в любом регистре
         result = result.replace(key, replacements[key])
         result = result.replace(key.upper(), replacements[key])
     return result
 
 def prepare_text(text):
+    """Подготовка текста: замена спецсимволов и сохранение информации о регистре"""
     alphabet = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
     alphabet_lower = alphabet.lower()
     text_with_replacements = replace_special_chars(text)
@@ -32,16 +35,17 @@ def prepare_text(text):
     for char in text_with_replacements:
         if char in alphabet:
             cleaned_text.append(char)
-            case_info.append(True)
+            case_info.append(True)  # Верхний регистр
         elif char in alphabet_lower:
             cleaned_text.append(char.upper())
-            case_info.append(False)
+            case_info.append(False) # Нижний регистр
         else:
             cleaned_text.append(char)
-            case_info.append(True)
+            case_info.append(True)  # По умолчанию верхний
     return ''.join(cleaned_text), case_info
 
 def restore_case(text, case_info):
+    """Восстановление исходного регистра текста"""
     result = []
     for i, char in enumerate(text):
         if i < len(case_info):
@@ -57,29 +61,17 @@ def restore_case(text, case_info):
     return ''.join(result)
 
 def atbash_cipher(text):
+    """Шифр Атбаш: шифрует ВСЕ символы алфавита, включая маркеры"""
     alphabet = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
     reversed_alphabet = alphabet[::-1]
     atbash_dict = {alphabet[i]: reversed_alphabet[i] for i in range(len(alphabet))}
-    specials = ['зпт', 'тчк', 'прб', 'квч', 'вскл']
+    
     result = []
-    i = 0
-    while i < len(text):
-        special_found = False
-        for special in specials:
-            chunk = text[i:i+len(special)]
-            # Проверяем маркеры без учёта регистра
-            if chunk == special or chunk == special.upper():
-                result.append(chunk)  # сохраняем исходный регистр маркера
-                i += len(special)
-                special_found = True
-                break
-        if not special_found:
-            current_char = text[i]
-            if current_char in atbash_dict:
-                result.append(atbash_dict[current_char])
-            else:
-                result.append(current_char)
-            i += 1
+    for char in text:
+        if char in atbash_dict:
+            result.append(atbash_dict[char])
+        else:
+            result.append(char)
     return ''.join(result)
 
 def main():
@@ -125,7 +117,7 @@ def main():
         print("-" * 40)
         result = atbash_cipher(prepared_text)
         print("\n" + "=" * 60)
-        print("ЗАШИФРОВАННЫЙ  ТЕКСТ:")
+        print("ЗАШИФРОВАННЫЙ ТЕКСТ:")
         print(result)
         print("=" * 60)
     else:
