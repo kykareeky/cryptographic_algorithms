@@ -125,8 +125,8 @@ def demo_signature():
     print(f"  Простые числа: p = {p_demo}, q = {q_demo}")
     print(f"  Модуль N = p·q = {n_demo}")
     print(f"  φ(N) = (p-1)(q-1) = {phi_demo}")
-    print(f"  Открытая экспонента e = {e_demo}")
-    print(f"  Закрытая экспонента d = {d_demo}")
+    print(f"  Открытая e = {e_demo}")
+    print(f"  Закрытая d = {d_demo}")
     
     text_demo = "приветмир"
     print(f"\nИсходное сообщение: \"{text_demo}\"")
