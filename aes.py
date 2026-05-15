@@ -21,7 +21,6 @@ SBOX = [
     [0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf],
     [0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16]
 ]
-
 INV_SBOX = [
     [0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb],
     [0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb],
@@ -40,7 +39,6 @@ INV_SBOX = [
     [0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61],
     [0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d]
 ]
-
 Rcon = [
     0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d, 0x9a
 ]
@@ -53,10 +51,8 @@ PUNCT_TO_MARKER = {
     '!': 'ВСК',
     '?': 'ВПР'
 }
-
 # Обратный словарь для восстановления
 MARKER_TO_PUNCT = {v: k for k, v in PUNCT_TO_MARKER.items()}
-
 
 def replace_special_chars(text):
     """Замена спецсимволов на буквенные маркеры"""
@@ -67,9 +63,8 @@ def replace_special_chars(text):
             result.append(char)
         elif char in PUNCT_TO_MARKER:
             result.append(PUNCT_TO_MARKER[char])
-        # Остальные символы игнорируются
+    # Остальные символы игнорируются
     return ''.join(result)
-
 
 def restore_special_chars(text):
     """Восстановление спецсимволов из маркеров"""
@@ -80,47 +75,48 @@ def restore_special_chars(text):
         result = result.replace(marker, MARKER_TO_PUNCT[marker])
     return result
 
-
 def sub_byte(b):
+    # [КРИПТО] Замена одного байта по таблице S-BOX. Обеспечивает нелинейную связь между входом и выходом.
     return SBOX[b >> 4][b & 0x0F]
 
-
 def inv_sub_byte(b):
+    # [КРИПТО] Обратная замена одного байта по таблице INV_SBOX. Восстанавливает исходное значение.
     return INV_SBOX[b >> 4][b & 0x0F]
 
-
 def sub_bytes(state):
+    # [КРИПТО] Цикл побайтовой замены всего блока через S-BOX
     for i in range(4):
         for j in range(4):
             state[i][j] = sub_byte(state[i][j])
 
-
 def inv_sub_bytes(state):
+    # [КРИПТО] Цикл обратной побайтовой замены всего блока
     for i in range(4):
         for j in range(4):
             state[i][j] = inv_sub_byte(state[i][j])
 
-
 def shift_rows(state):
+    # [КРИПТО] Циклический сдвиг строк матрицы состояния.
+    # 1-я строка сдвигается на 1, 2-я на 2, 3-я на 3 позиции. Перемешивает байты внутри блока.
     state[1][0], state[1][1], state[1][2], state[1][3] = state[1][1], state[1][2], state[1][3], state[1][0]
     state[2][0], state[2][1], state[2][2], state[2][3] = state[2][2], state[2][3], state[2][0], state[2][1]
     state[3][0], state[3][1], state[3][2], state[3][3] = state[3][3], state[3][0], state[3][1], state[3][2]
 
-
 def inv_shift_rows(state):
+    # [КРИПТО] Обратный сдвиг строк матрицы состояния. Восстанавливает порядок байтов.
     state[1][0], state[1][1], state[1][2], state[1][3] = state[1][3], state[1][0], state[1][1], state[1][2]
     state[2][0], state[2][1], state[2][2], state[2][3] = state[2][2], state[2][3], state[2][0], state[2][1]
     state[3][0], state[3][1], state[3][2], state[3][3] = state[3][1], state[3][2], state[3][3], state[3][0]
 
-
 def xtime(b):
+    # [КРИПТО] Умножение байта на 2 в специальном поле. Используется для сложного перемешивания столбцов.
     if b & 0x80:
         return ((b << 1) & 0xFF) ^ 0x1B
     else:
         return (b << 1) & 0xFF
 
-
 def mix_columns(state):
+    # [КРИПТО] Цикл обработки каждого столбца матрицы. Комбинирует 4 байта столбца по фиксированным правилам.
     for c in range(4):
         s0 = state[0][c]
         s1 = state[1][c]
@@ -131,8 +127,8 @@ def mix_columns(state):
         state[2][c] = s0 ^ s1 ^ xtime(s2) ^ (xtime(s3) ^ s3)
         state[3][c] = (xtime(s0) ^ s0) ^ s1 ^ s2 ^ xtime(s3)
 
-
 def inv_mix_columns(state):
+    # [КРИПТО] Цикл обратной обработки столбцов. Восстанавливает столбцы после перемешивания.
     for c in range(4):
         s0 = state[0][c]
         s1 = state[1][c]
@@ -143,8 +139,8 @@ def inv_mix_columns(state):
         state[2][c] = mul(0x0d, s0) ^ mul(0x09, s1) ^ mul(0x0e, s2) ^ mul(0x0b, s3)
         state[3][c] = mul(0x0b, s0) ^ mul(0x0d, s1) ^ mul(0x09, s2) ^ mul(0x0e, s3)
 
-
 def mul(a, b):
+    # [КРИПТО] Умножение двух байтов в поле AES. Собирает результат побитовым сложением и сдвигами.
     result = 0
     while b:
         if b & 1:
@@ -153,19 +149,22 @@ def mul(a, b):
         b >>= 1
     return result
 
-
 def add_round_key(state, round_key):
+    # [КРИПТО] Цикл побайтового сложения состояния блока с раундовым ключом по правилу XOR.
     for i in range(4):
         for j in range(4):
             state[i][j] ^= round_key[i][j]
 
-
 def key_expansion(key):
+    # [КРИПТО] Развёртывание основного ключа в набор раундовых ключей.
     Nk = len(key) // 4
     Nr = Nk + 6
     w = []
+    # [КРИПТО] Копируем первые части исходного ключа
     for i in range(Nk):
         w.append(int.from_bytes(key[i*4:(i+1)*4], 'big'))
+    
+    # [КРИПТО] Цикл генерации оставшихся слов ключа с применением поворотов, подстановок и констант.
     for i in range(Nk, 4*(Nr+1)):
         temp = w[i-1]
         if i % Nk == 0:
@@ -181,7 +180,9 @@ def key_expansion(key):
                    (sub_byte((temp >> 8) & 0xFF) << 8) | \
                    sub_byte(temp & 0xFF)
         w.append(w[i-Nk] ^ temp)
+        
     round_keys = []
+    # [КРИПТО] Разбивка полученных слов на матрицы 4x4 для каждого раунда.
     for round in range(Nr+1):
         key_matrix = [[0]*4 for _ in range(4)]
         for col in range(4):
@@ -193,30 +194,35 @@ def key_expansion(key):
         round_keys.append(key_matrix)
     return round_keys
 
-
 def aes_encrypt_block(block: bytes, round_keys: list) -> bytes:
     if len(block) != 16:
         raise ValueError("Блок должен быть 16 байт")
+    # [КРИПТО] Преобразование 16 байт в матрицу состояния 4x4.
     state = [[0]*4 for _ in range(4)]
     for i in range(4):
         for j in range(4):
             state[i][j] = block[i + 4*j]
     Nr = len(round_keys) - 1
+    
+    # [КРИПТО] Начальное сложение с первым раундовым ключом.
     add_round_key(state, round_keys[0])
+    # [КРИПТО] Цикл основных раундов шифрования.
     for round in range(1, Nr):
         sub_bytes(state)
         shift_rows(state)
         mix_columns(state)
         add_round_key(state, round_keys[round])
+    # [КРИПТО] Финальный раунд без перемешивания столбцов.
     sub_bytes(state)
     shift_rows(state)
     add_round_key(state, round_keys[Nr])
+    
+    # [КРИПТО] Преобразование матрицы состояния обратно в 16 байт.
     output = bytearray(16)
     for i in range(4):
         for j in range(4):
             output[i + 4*j] = state[i][j]
     return bytes(output)
-
 
 def aes_decrypt_block(block: bytes, round_keys: list) -> bytes:
     if len(block) != 16:
@@ -226,21 +232,25 @@ def aes_decrypt_block(block: bytes, round_keys: list) -> bytes:
         for j in range(4):
             state[i][j] = block[i + 4*j]
     Nr = len(round_keys) - 1
+    
+    # [КРИПТО] Начальное сложение с последним ключом.
     add_round_key(state, round_keys[Nr])
+    # [КРИПТО] Цикл обратных раундов расшифрования.
     for round in range(Nr-1, 0, -1):
         inv_shift_rows(state)
         inv_sub_bytes(state)
         add_round_key(state, round_keys[round])
         inv_mix_columns(state)
+    # [КРИПТО] Финальный обратный раунд.
     inv_shift_rows(state)
     inv_sub_bytes(state)
     add_round_key(state, round_keys[0])
+    
     output = bytearray(16)
     for i in range(4):
         for j in range(4):
             output[i + 4*j] = state[i][j]
     return bytes(output)
-
 
 def prepare_text(raw_text: str, mode: str = 'text') -> bytes:
     if mode == 'hex':
@@ -253,22 +263,18 @@ def prepare_text(raw_text: str, mode: str = 'text') -> bytes:
         text = replace_special_chars(raw_text)
         return text.encode('utf-8')
 
-
 def prepare_key(key_input: str) -> bytes:
     key_hex = key_input.strip().replace(' ', '').replace('0x', '')
     if len(key_hex) not in (32, 48, 64):
         raise ValueError("Ключ должен быть 32, 48 или 64 шестнадцатеричных символа")
     return bytes.fromhex(key_hex)
 
-
 def bytes_to_hex_str(data: bytes) -> str:
     return data.hex().upper()
-
 
 def hex_str_to_bytes(hex_str: str) -> bytes:
     hex_str = hex_str.strip().replace(' ', '').replace('0x', '')
     return bytes.fromhex(hex_str)
-
 
 def pad_data(data: bytes) -> bytes:
     padding_len = 16 - (len(data) % 16)
@@ -277,33 +283,31 @@ def pad_data(data: bytes) -> bytes:
     else:
         return data + b'\x00' * padding_len
 
-
 def unpad_data(data: bytes) -> bytes:
     return data.rstrip(b'\x00')
-
 
 def aes_encrypt_data(data: bytes, key: bytes) -> bytes:
     round_keys = key_expansion(key)
     padded_data = pad_data(data)
     encrypted = bytearray()
+    # [КРИПТО] Цикл поблочного шифрования: обрабатываем данные кусками по 16 байт
     for i in range(0, len(padded_data), 16):
         block = padded_data[i:i+16]
         enc_block = aes_encrypt_block(block, round_keys)
         encrypted.extend(enc_block)
     return bytes(encrypted)
 
-
 def aes_decrypt_data(encrypted_data: bytes, key: bytes) -> bytes:
     round_keys = key_expansion(key)
     if len(encrypted_data) % 16 != 0:
         raise ValueError("Длина зашифрованных данных должна быть кратна 16 байтам")
     decrypted = bytearray()
+    # [КРИПТО] Цикл поблочного расшифрования
     for i in range(0, len(encrypted_data), 16):
         block = encrypted_data[i:i+16]
         dec_block = aes_decrypt_block(block, round_keys)
         decrypted.extend(dec_block)
     return unpad_data(bytes(decrypted))
-
 
 def get_text_input():
     """Получение текста от пользователя"""
@@ -311,7 +315,6 @@ def get_text_input():
     print("1 - Ввод текста в консоли")
     print("2 - Чтение текста из файла (input.txt)")
     choice = input("\nВаш выбор: ").strip()
-    
     if choice == '1':
         print("\nВведите текст (для завершения введите пустую строку):")
         lines = []
@@ -336,7 +339,6 @@ def get_text_input():
         print("[Ошибка] Неверный выбор!")
         return None
 
-
 def main():
     print("=" * 60)
     print("ШИФР AES (FIPS-197)")
@@ -345,20 +347,19 @@ def main():
     print("      (AES-128, AES-192 или AES-256)")
     print("Режим: ECB")
     print("Поддерживаемые спецсимволы: пробел, запятая, точка, !, ?")
-
     while True:
-        print("\n" + "-" * 40)
-        print("МЕНЮ:")
-        print("1. Зашифровать текст (как обычный текст)")
-        print("2. Зашифровать данные (hex-строка)")
-        print("3. Расшифровать данные (из hex-строки)")
-        print("0. Выход")
+        print("\n " + "-" * 40)
+        print("МЕНЮ: ")
+        print("1. Зашифровать текст (как обычный текст) ")
+        print("2. Зашифровать данные (hex-строка) ")
+        print("3. Расшифровать данные (из hex-строки) ")
+        print("0. Выход ")
         print("-" * 40)
 
         choice = input("Выберите действие: ").strip()
 
         if choice == '0':
-            print("\nПрограмма завершена.")
+            print("\nПрограмма завершена. ")
             print("=" * 60)
             break
 
@@ -383,37 +384,36 @@ def main():
                     # Декодируем и восстанавливаем спецсимволы
                     plaintext = decrypted_data.decode('utf-8')
                     result = restore_special_chars(plaintext)
-                    print("\n" + "-" * 40)
-                    print("РЕЗУЛЬТАТ РАСШИФРОВАНИЯ")
+                    print("\n " + "-" * 40)
+                    print("РЕЗУЛЬТАТ РАСШИФРОВАНИЯ ")
                     print("-" * 40)
-                    print(f"Расшифрованный текст: {result}")
+                    print(f"Расшифрованный текст: {result} ")
                     print("-" * 40)
                 except UnicodeDecodeError:
-                    print("\n" + "-" * 40)
-                    print("РЕЗУЛЬТАТ РАСШИФРОВАНИЯ")
+                    print("\n " + "-" * 40)
+                    print("РЕЗУЛЬТАТ РАСШИФРОВАНИЯ ")
                     print("-" * 40)
-                    print(f"Расшифрованные данные (hex): {decrypted_data.hex().upper()}")
+                    print(f"Расшифрованные данные (hex): {decrypted_data.hex().upper()} ")
                     print("-" * 40)
             except Exception as e:
-                print(f"[Ошибка] {e}")
+                print(f"[Ошибка] {e} ")
             continue
         else:
-            print("[Ошибка] Неверный выбор.")
+            print("[Ошибка] Неверный выбор. ")
             continue
 
         try:
             key = prepare_key(key_hex)
             data_bytes = prepare_text(plaintext, mode)
-            print(f"\nПодготовленные данные (hex): {bytes_to_hex_str(data_bytes)}")
+            print(f"\nПодготовленные данные (hex): {bytes_to_hex_str(data_bytes)} ")
             encrypted_data = aes_encrypt_data(data_bytes, key)
-            print("\n" + "-" * 40)
-            print("РЕЗУЛЬТАТ ШИФРОВАНИЯ")
+            print("\n " + "-" * 40)
+            print("РЕЗУЛЬТАТ ШИФРОВАНИЯ ")
             print("-" * 40)
-            print(f"Зашифрованный текст (hex): {bytes_to_hex_str(encrypted_data)}")
+            print(f"Зашифрованный текст (hex): {bytes_to_hex_str(encrypted_data)} ")
             print("-" * 40)
         except Exception as e:
-            print(f"[Ошибка] {e}")
-
+            print(f"[Ошибка] {e} ")
 
 if __name__ == "__main__":
     main()

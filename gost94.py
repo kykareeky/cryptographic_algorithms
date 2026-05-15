@@ -2,20 +2,21 @@ import sys
 import random
 
 def preprocess(text: str) -> str:
-    """Заменяет пробелы, запятые и точки на маркеры. Остальные символы игнорируются."""
+    """Заменяет пробелы, запятые и точки на маркеры."""
     text = text.replace('.', 'тчк')
     text = text.replace(',', 'зпт')
     text = text.replace(' ', 'прб')
     return text.lower()
 
 def hash_quad(text: str, p: int, verbose: bool = False) -> int:
-    """Учебная хеш-функция: h = Σ(idx+1)² mod p"""
+    # [КРИПТО] Хеширование сообщения: преобразует текст в число по модулю p.
+    # На каждом шаге суммирует индекс буквы с текущим хешем и возводит результат в квадрат.
     alphabet = "абвгдежзийклмнопрстуфхцчшщъыьэюя"
     h = 0
     if verbose:
         print(f"\n  Формула: h_i = (h_{{i-1}} + индекс(буквы) + 1)² mod {p}")
         print(f"  {'Буква':<6} {'Индекс':<8} {'Вычисление':<38} {'h'}")
-        print("  " + "-"*65)
+        print("   " + "-"*65)
     for ch in text:
         idx = alphabet.index(ch) + 1
         h_prev = h
@@ -27,9 +28,8 @@ def hash_quad(text: str, p: int, verbose: bool = False) -> int:
     if verbose and h == 0:
         print("  h = 0 → заменяем на 1")
     return result
-
+#Проверка числа на простоту
 def is_prime(n: int) -> bool:
-    """Проверка числа на простоту"""
     if n < 2:
         return False
     if n % 2 == 0:
@@ -42,14 +42,17 @@ def is_prime(n: int) -> bool:
     return True
 
 def mod_inv(a: int, p: int) -> int:
-    """Вычисление модульного обратного элемента"""
+    # [КРИПТО] Находит обратный элемент к a по модулю p с помощью возведения в степень.
+    # Используется для безопасного "деления" в модульной арифметике.
     a = a % p
     if a == 0:
         raise ZeroDivisionError("Обратный элемент не существует")
     return pow(a, -1, p)
 
 def compute_a(p: int, q: int) -> int:
-    """Вычисление параметра a по ГОСТ Р 34.10-94"""
+    # [КРИПТО] Поиск элемента a, который имеет порядок q по модулю p.
+    # Это значит, что a^q ≡ 1 mod p, и ни одна меньшая степень не даёт 1.
+    # Гарантирует, что вычисления будут происходить внутри безопасной подгруппы.
     print(f"\n{'='*60}")
     print(f"  ВЫЧИСЛЕНИЕ ПАРАМЕТРА a (ГОСТ Р 34.10-94)")
     print(f"{'='*60}")
@@ -75,7 +78,7 @@ def compute_a(p: int, q: int) -> int:
     for idx, (d, a_val) in enumerate(candidates, 1):
         print(f"    {idx}. d={d}, a={a_val}")
     while True:
-        choice = input("  Ваш выбор: ").strip()
+        choice = input("  Ваш выбор:").strip()
         try:
             idx = int(choice)
             if 1 <= idx <= len(candidates):
@@ -92,9 +95,10 @@ def compute_a(p: int, q: int) -> int:
         print("  [Ошибка] Неверный ввод. Введите номер из списка или значение a.")
 
 def gost94_sign(text: str, p: int, q: int, a: int, x: int) -> tuple:
-    """Формирование подписи по ГОСТ Р 34.10-94"""
+    # [КРИПТО] Формирование подписи по ГОСТ Р 34.10-94.
+    # Генерирует пару чисел (r, s), которая подтверждает подлинность сообщения.
     m = hash_quad(text, q, verbose=False)
-    # Выбор k
+    # [КРИПТО] Перебор случайных k до тех пор, пока компоненты подписи r и s не станут ненулевыми.
     candidates = list(range(1, q))
     random.shuffle(candidates)
     for k in candidates:
@@ -105,18 +109,20 @@ def gost94_sign(text: str, p: int, q: int, a: int, x: int) -> tuple:
     raise ValueError("Не удалось найти подходящее k")
 
 def gost94_verify(text: str, r: int, s: int, p: int, q: int, a: int, y: int) -> bool:
-    """Проверка подписи по ГОСТ Р 34.10-94"""
+    # [КРИПТО] Проверка подписи: восстанавливает значение u по компонентам r, s и открытому ключу y.
+    # Если u совпадает с r, подпись считается валидной.
     m = hash_quad(text, q, verbose=False)
     if not (0 < r < q and 0 < s < q):
         return False
+    # [КРИПТО] Вычисляем обратный элемент к хешу сообщения по модулю q
     v = pow(m, q - 2, q)
     z1 = (s * v) % q
     z2 = ((q - r) * v) % q
+    # [КРИПТО] Комбинируем базовую точку a и открытый ключ y с весами z1 и z2
     u = (pow(a, z1, p) * pow(y, z2, p)) % p % q
     return u == r
-
+#Безопасный ввод целого числа
 def get_int_input(prompt: str) -> int:
-    """Безопасный ввод целого числа"""
     while True:
         try:
             return int(input(prompt).strip())
@@ -130,7 +136,6 @@ def main():
     print("\nНазначение: создание и проверка электронной подписи")
     print("Алфавит: 32 русские буквы (ё → е) + маркеры для пробелов и знаков")
     print("Формула хеша: h_i = (h_{i-1} + idx + 1)² mod p")
-
     while True:
         print("\n" + "-" * 40)
         print("МЕНЮ")
@@ -140,7 +145,7 @@ def main():
         print("0 - Выход")
         print("-" * 40)
 
-        op = get_int_input("Ваш выбор: ")
+        op = get_int_input("Ваш выбор:")
         if op == 0:
             print("\n[Инфо] Программа завершена")
             print("=" * 60)
@@ -149,7 +154,7 @@ def main():
             print("[Ошибка] Неверный выбор")
             continue
 
-        text = input("\nВведите текст для обработки: ").strip()
+        text = input("\nВведите текст для обработки:").strip()
         if not text:
             print("[Ошибка] Текст не может быть пустым")
             continue
@@ -162,12 +167,12 @@ def main():
             print("ФОРМИРОВАНИЕ ПОДПИСИ")
             print("-" * 60)
 
-            p = get_int_input("  Введите простое P (> 32): ")
+            p = get_int_input("  Введите простое P (> 32):")
             if not is_prime(p) or p <= 32:
                 print("[Ошибка] P должно быть простым и > 32")
                 continue
 
-            q = get_int_input(f"  Введите простое Q (делитель {p-1}): ")
+            q = get_int_input(f"  Введите простое Q (делитель {p-1}):")
             if not is_prime(q) or (p - 1) % q != 0:
                 print(f"[Ошибка] Q должно быть простым делителем {p-1}")
                 continue
@@ -178,7 +183,7 @@ def main():
                 print(f"[Ошибка] {e}")
                 continue
 
-            x = get_int_input(f"  Введите закрытый ключ X (1 < X < {q}): ")
+            x = get_int_input(f"  Введите закрытый ключ X (1 < X < {q}):")
             if not (0 < x < q):
                 print(f"[Ошибка] X должен быть в диапазоне (0, {q})")
                 continue
@@ -203,12 +208,12 @@ def main():
             print("ПРОВЕРКА ПОДПИСИ")
             print("-" * 60)
 
-            p = get_int_input("  Введите P: ")
-            q = get_int_input("  Введите Q: ")
-            a = get_int_input("  Введите a: ")
-            y = get_int_input("  Введите открытый ключ Y: ")
-            r = get_int_input("  Введите параметр r: ")
-            s = get_int_input("  Введите параметр s: ")
+            p = get_int_input("  Введите P:")
+            q = get_int_input("  Введите Q:")
+            a = get_int_input("  Введите a:")
+            y = get_int_input("  Введите открытый ключ Y:")
+            r = get_int_input("  Введите параметр r:")
+            s = get_int_input("  Введите параметр s:")
 
             valid = gost94_verify(text, r, s, p, q, a, y)
 

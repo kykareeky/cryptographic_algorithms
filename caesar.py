@@ -25,6 +25,7 @@ def prepare_text(text):
     text_with_replacements = replace_special_chars(text)
     case_info = []
     cleaned_text = []
+    # [КРИПТО] Цикл подготовки текста: сохраняет исходный регистр букв для последующего восстановления
     for char in text_with_replacements:
         if char in alphabet:
             cleaned_text.append(char)
@@ -39,6 +40,7 @@ def prepare_text(text):
 
 def restore_case(text, case_info):
     result = []
+    # [КРИПТО] Цикл возврата букв к исходному регистру после сдвига
     for i, char in enumerate(text):
         if i < len(case_info):
             if char.isalpha():
@@ -56,7 +58,8 @@ def caesar_cipher(text, shift=3, encrypt=True):
     alphabet = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
     n = len(alphabet)
     result = []
-    # Убран пропуск маркеров. Теперь шифруется весь текст целиком
+    # [КРИПТО] Цикл побуквенного сдвига. Если encrypt=True, буквы сдвигаются вперёд, иначе — назад.
+    # Оператор % n обеспечивает "зацикливание" алфавита при выходе за границы.
     for char in text:
         if char in alphabet:
             idx = alphabet.index(char)
@@ -70,61 +73,60 @@ def main():
     print("=" * 60)
     print("ШИФР ЦЕЗАРЯ")
     print("=" * 60)
-    
     action = input("\nВыберите действие: \n1 - шифрование \n2 - расшифрование ").strip()
-    
-    print("\nВыберите источник текста:")
-    print("1 - Ввод текста в консоли")
-    print("2 - Чтение текста из файла (input.txt)")
+
+    print("\nВыберите источник текста: ")
+    print("1 - Ввод текста в консоли ")
+    print("2 - Чтение текста из файла (input.txt) ")
     choice = input("\nВаш выбор: ").strip()
-    
+
     if choice == '1':
-        print("\nВведите текст (для завершения введите пустую строку):")
+        print("\nВведите текст (для завершения введите пустую строку): ")
         lines = []
         while True:
             line = input()
-            if line == "":
+            if line == " ":
                 break
             lines.append(line)
-        original_text = "\n".join(lines)
+        original_text = "\n ".join(lines)
         if not original_text:
-            print("[Ошибка] Текст не введен!")
+            print("[Ошибка] Текст не введен! ")
             return
     elif choice == '2':
         if not os.path.exists('input.txt'):
-            print("[Ошибка] Файл input.txt не найден!")
+            print("[Ошибка] Файл input.txt не найден! ")
             return
         with open('input.txt', 'r', encoding='utf-8') as f:
             original_text = f.read()
     else:
-        print("[Ошибка] Неверный выбор!")
+        print("[Ошибка] Неверный выбор! ")
         return
-    
+
     try:
         shift_input = input("\nВведите сдвиг (по умолчанию 3): ").strip()
         shift = int(shift_input) if shift_input else 3
     except ValueError:
-        print("[Ошибка] Неверный формат сдвига! Используется значение по умолчанию: 3")
+        print("[Ошибка] Неверный формат сдвига! Используется значение по умолчанию: 3 ")
         shift = 3
         
     prepared_text, case_info = prepare_text(original_text)
-    
-    print("\n" + "-" * 40)
-    print("ПРОЦЕСС")
+
+    print("\n " + "-" * 40)
+    print("ПРОЦЕСС ")
     print("-" * 40)
-    
+
     if action == '1':
         encrypted = caesar_cipher(prepared_text, shift, encrypt=True)
-        print("\n" + "=" * 60)
-        print("ЗАШИФРОВАННЫЙ ТЕКСТ:")
+        print("\n " + "=" * 60)
+        print("ЗАШИФРОВАННЫЙ ТЕКСТ: ")
         print(encrypted)
         print("=" * 60)
     else:
         decrypted = caesar_cipher(prepared_text, shift, encrypt=False)
         decrypted_with_case = restore_case(decrypted, case_info)
         result = restore_special_chars(decrypted_with_case)
-        print("\n" + "=" * 60)
-        print("РАСШИФРОВАННЫЙ ТЕКСТ:")
+        print("\n " + "=" * 60)
+        print("РАСШИФРОВАННЫЙ ТЕКСТ: ")
         print(result)
         print("=" * 60)
 

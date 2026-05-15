@@ -5,7 +5,6 @@ from typing import List, Tuple
 
 ALPHABET = "абвгдежзийклмнопрстуфхцчшщъыьэюя"
 ALPH_SIZE = len(ALPHABET)
-
 punct_dict = {
     '.': 'тчк', ',': 'зпт', '?': 'впр', '!': 'вск',
     '"': 'квч', '-': 'тире', '(': 'скоб', ')': 'скобз',
@@ -29,9 +28,11 @@ def restore_text(txt: str) -> str:
     return txt
 
 def digitization(open_text: str) -> List[int]:
+    # [КРИПТО] Преобразование букв в числа от 1 до 32 для математических операций
     return [ALPHABET.index(ch) + 1 for ch in open_text]
 
 def undigitization(numbers: List[int]) -> str:
+    # [КРИПТО] Обратное преобразование чисел в буквы
     return ''.join(ALPHABET[n-1] for n in numbers)
 
 def decryption_format(dec_text: str) -> str:
@@ -98,11 +99,15 @@ def input_positive(prompt: str) -> int:
 
 def elgamal_encrypt(plain_numbers: List[int], p: int, g: int, y: int) -> List[int]:
     result = []
+    # [КРИПТО] Цикл шифрования каждого числа сообщения. Для каждого блока выбирается своё случайное k.
     for m in plain_numbers:
+        # [КРИПТО] Подбор случайного k, взаимно простого с p-1, чтобы гарантировать безопасность вычислений
         k = random.randint(2, p-2)
         while gcd(k, p-1) != 1:
             k = random.randint(2, p-2)
+        # [КРИПТО] Первая часть шифртекста: a = g^k mod p (зависит только от k)
         a = pow(g, k, p)
+        # [КРИПТО] Вторая часть: b = m * y^k mod p (связывает сообщение, открытый ключ и k)
         b = (m * pow(y, k, p)) % p
         result.append(a)
         result.append(b)
@@ -110,10 +115,13 @@ def elgamal_encrypt(plain_numbers: List[int], p: int, g: int, y: int) -> List[in
 
 def elgamal_decrypt(cipher_pairs: List[int], p: int, x: int) -> List[int]:
     plain = []
+    # [КРИПТО] Цикл обработки шифртекста парами (a, b)
     for i in range(0, len(cipher_pairs), 2):
         a = cipher_pairs[i]
         b = cipher_pairs[i+1]
+        # [КРИПТО] Вычисление обратного элемента a^(-x) mod p для извлечения сообщения
         a_inv = pow(a, p-1-x, p)
+        # [КРИПТО] Восстановление исходного числа: m = b * a^(-x) mod p
         m = (b * a_inv) % p
         plain.append(m)
     return plain
@@ -124,23 +132,22 @@ def main():
     print("Алфавит: 32 русские буквы (ё заменяется на е)")
     print("Знаки препинания заменяются на слова, пробелы на 'прб'")
     print("=" * 60)
-
     while True:
-        print("\n" + "─" * 40)
-        print("МЕНЮ:")
-        print("  1. Шифрование")
-        print("  2. Расшифрование")
-        print("  0. Выход")
+        print("\n " + "─" * 40)
+        print("МЕНЮ: ")
+        print("  1. Шифрование ")
+        print("  2. Расшифрование ")
+        print("  0. Выход ")
         print("─" * 40)
 
         try:
             op = int(input("Выберите действие: "))
         except ValueError:
-            print("  [!] Введите число.")
+            print("  [!] Введите число. ")
             continue
 
         if op == 0:
-            print("\nДо свидания!")
+            print("\nДо свидания! ")
             print("=" * 60)
             break
 
@@ -152,8 +159,8 @@ def main():
 
         try:
             if op == 1:
-                print("\n" + "-" * 40)
-                print("ШИФРОВАНИЕ ELGAMAL")
+                print("\n " + "-" * 40)
+                print("ШИФРОВАНИЕ ELGAMAL ")
                 print("-" * 40)
                 p = input_int("Введите простое число p (должно быть > 32): ", low=32, is_prime_needed=True)
                 g = input_int(f"Введите g (1 < g < {p}): ", low=1, high=p)
@@ -162,27 +169,27 @@ def main():
                 plain_numbers = digitization(prepared)
                 cipher = elgamal_encrypt(plain_numbers, p, g, y)
                 print(f"\nОткрытые параметры: p = {p}, g = {g}, y = {y}")
-                print(f"Секретный ключ (x) = {x} (запомните для расшифровки)")
-                print("\nЗАШИФРОВАННЫЙ ТЕКСТ (пары a,b):")
+                print(f"Секретный ключ (x) = {x} (запомните для расшифровки) ")
+                print("\nЗАШИФРОВАННЫЙ ТЕКСТ (пары a,b): ")
                 print(' '.join(str(c) for c in cipher))
                 print("-" * 40)
 
             else:
-                print("\n" + "-" * 40)
-                print("РАСШИФРОВАНИЕ ELGAMAL")
+                print("\n " + "-" * 40)
+                print("РАСШИФРОВАНИЕ ELGAMAL ")
                 print("-" * 40)
                 p = input_positive("Введите p: ")
                 if not is_prime(p):
-                    print("  [!] Предупреждение: p не является простым. Расшифровка может быть некорректной.")
+                    print("  [!] Предупреждение: p не является простым. Расшифровка может быть некорректной. ")
                 x = input_positive("Введите секретный ключ x: ")
                 if not (1 < x < p):
-                    raise ValueError("x должно быть в интервале (1, p)")
+                    raise ValueError("x должно быть в интервале (1, p) ")
                 cipher_numbers = [int(c) for c in prepared.split()]
                 if len(cipher_numbers) % 2 != 0:
-                    raise ValueError("Количество чисел должно быть чётным (пары a,b)")
+                    raise ValueError("Количество чисел должно быть чётным (пары a,b) ")
                 for val in cipher_numbers:
                     if not (0 <= val < p):
-                        raise ValueError(f"Число {val} выходит за пределы [0, {p-1}]")
+                        raise ValueError(f"Число {val} выходит за пределы [0, {p-1}] ")
                 plain_numbers = elgamal_decrypt(cipher_numbers, p, x)
                 plain_letters = undigitization(plain_numbers)
                 restored = decryption_format(plain_letters)

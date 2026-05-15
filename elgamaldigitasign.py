@@ -2,12 +2,9 @@ import sys
 import random
 from math import gcd
 
-# ------------------------------------------------------------
-# Константы и словари
-# ------------------------------------------------------------
+# [КРИПТО] Алфавит для преобразования текста в числа
 ALPHABET = "абвгдежзийклмнопрстуфхцчшщъыьэюя"
 ALPH_SIZE = len(ALPHABET)
-
 PUNCT_DICT = {
     '.': 'тчк', ',': 'зпт', '?': 'впр', '!': 'вск',
     '"': 'квч', '-': 'дефис', '(': 'скоб', ')': 'скобз',
@@ -16,11 +13,9 @@ PUNCT_DICT = {
 }
 # Добавляем цифры
 for i, word in enumerate(['ноль', 'один', 'два', 'три', 'четыре',
-                          'пять', 'шесть', 'семь', 'восемь', 'девять']):
+                        'пять', 'шесть', 'семь', 'восемь', 'девять']):
     PUNCT_DICT[str(i)] = word
-
 REV_PUNCT = {v: k for k, v in PUNCT_DICT.items()}
-
 
 def prepare_text(txt: str) -> str:
     """Подготовка текста: нормализация и замена спецсимволов на маркеры"""
@@ -29,17 +24,15 @@ def prepare_text(txt: str) -> str:
         txt = txt.replace(orig, marker)
     return txt
 
-
 def restore_text(txt: str) -> str:
     """Восстановление исходного текста из маркеров"""
-    # Сортируем по длине для корректной замены (длинные маркеры сначала)
     for marker in sorted(REV_PUNCT.keys(), key=len, reverse=True):
         txt = txt.replace(marker, REV_PUNCT[marker])
     return txt
 
-
 def hash_message(text: str, p: int) -> int:
-    """Простая хеш-функция для демонстрации (не для продакшена!)"""
+    # [КРИПТО] Хеширование сообщения: преобразует текст в число по модулю p.
+    # Суммирует позиции букв, затем возводит сумму в квадрат на каждом шаге для перемешивания.
     h = 0
     for ch in text:
         if ch in ALPHABET:
@@ -48,9 +41,8 @@ def hash_message(text: str, p: int) -> int:
             h = (h * h) % p
     return h if h != 0 else 1
 
-
 def is_prime(n: int) -> bool:
-    """Проверка числа на простоту"""
+    # [КРИПТО] Проверка простоты числа для генерации безопасного модуля p
     if n < 2:
         return False
     if n == 2:
@@ -64,25 +56,22 @@ def is_prime(n: int) -> bool:
         d += 2
     return True
 
-
 def extended_gcd(a: int, b: int):
-    """Расширенный алгоритм Евклида"""
+    # [КРИПТО] Расширенный алгоритм Евклида: находит наибольший общий делитель и коэффициенты
+    # для вычисления обратного элемента по модулю.
     if b == 0:
         return a, 1, 0
     g, x1, y1 = extended_gcd(b, a % b)
     return g, y1, x1 - (a // b) * y1
 
-
 def mod_inverse(a: int, m: int) -> int:
-    """Вычисление модульного обратного элемента"""
+    # [КРИПТО] Находит число, обратное к a по модулю m. Нужно для деления в модульной арифметике.
     g, x, _ = extended_gcd(a, m)
     if g != 1:
         raise ValueError("Обратный элемент не существует")
     return x % m
 
-
 def input_int(prompt: str, low: int = None, high: int = None, is_prime_needed: bool = False) -> int:
-    """Безопасный ввод целого числа с проверками"""
     while True:
         try:
             val = int(input(prompt).strip())
@@ -99,58 +88,58 @@ def input_int(prompt: str, low: int = None, high: int = None, is_prime_needed: b
         except ValueError:
             print("[Ошибка] Введите целое число")
 
-
 def elgamal_sign(message_hash: int, p: int, g: int, x: int) -> tuple:
-    """Генерация подписи Эль-Гамаля: (a, b, k)"""
+    # [КРИПТО] Генерация подписи Эль-Гамаля: вычисляет пару (a, b) для заданного хеша сообщения.
+    # Подбирает случайное k, взаимно простое с p-1, чтобы гарантировать существование обратного элемента.
     while True:
         k = random.randint(2, p - 2)
         if gcd(k, p - 1) == 1:
             break
+    # [КРИПТО] a = g^k mod p (первая часть подписи, зависит от случайного k)
     a = pow(g, k, p)
+    # [КРИПТО] Находим обратный элемент k^-1 по модулю p-1 для вычисления второй части подписи
     k_inv = mod_inverse(k, p - 1)
+    # [КРИПТО] b = (h - x*a) * k^-1 mod (p-1) (вторая часть подписи, связывает хеш, секретный ключ и a)
     b = ((message_hash - x * a) % (p - 1)) * k_inv % (p - 1)
     return a, b, k
 
-
 def elgamal_verify(message_hash: int, a: int, b: int, p: int, g: int, y: int) -> bool:
-    """Проверка подписи Эль-Гамаля"""
+    # [КРИПТО] Проверка подписи: вычисляет левую и правую часть уравнения y^a * a^b ≡ g^h mod p.
+    # Если они равны, подпись верна, что подтверждает целостность сообщения и принадлежность ключа.
     if not (0 < a < p and 0 <= b < p - 1):
         return False
     left = (pow(y, a, p) * pow(a, b, p)) % p
     right = pow(g, message_hash, p)
     return left == right
 
-
 def demo_signature():
     """Демонстрация работы схемы подписи"""
     print("\n" + "=" * 60)
     print("ДЕМОНСТРАЦИЯ ЦИФРОВОЙ ПОДПИСИ")
     print("=" * 60)
-    
-    # Тестовые параметры
     p_demo, g_demo, x_demo = 47, 11, 5
     y_demo = pow(g_demo, x_demo, p_demo)
     text_demo = "приветмир"
-    
+
     print(f"\nПараметры схемы:")
     print(f"  Простой модуль p = {p_demo}")
     print(f"  Генератор g = {g_demo}")
     print(f"  Секретный ключ x = {x_demo}")
     print(f"  Открытый ключ y = g^x mod p = {y_demo}")
-    
+
     print(f"\nИсходное сообщение: \"{text_demo}\"")
     prepared = prepare_text(text_demo)
     h = hash_message(prepared, p_demo)
     print(f"Подготовленное сообщение: {prepared}")
     print(f"Хеш сообщения h = {h}")
-    
+
     a, b, k = elgamal_sign(h, p_demo, g_demo, x_demo)
     print(f"\nГенерация подписи:")
     print(f"  Случайное k = {k}")
     print(f"  a = g^k mod p = {a}")
     print(f"  b = (h - x·a)·k⁻¹ mod (p-1) = {b}")
     print(f"  Подпись: ({a}, {b})")
-    
+
     valid = elgamal_verify(h, a, b, p_demo, g_demo, y_demo)
     print(f"\nПроверка подписи:")
     print(f"  y^a · a^b mod p = {((pow(y_demo, a, p_demo) * pow(a, b, p_demo)) % p_demo)}")
@@ -158,21 +147,18 @@ def demo_signature():
     print(f"  Результат: {'[Успех] Подпись верна' if valid else '[Ошибка] Подпись неверна'}")
     print("=" * 60)
 
-
 def sign_message():
     """Режим подписания сообщения"""
     print("\n" + "-" * 60)
     print("ПОДПИСАНИЕ СООБЩЕНИЯ")
     print("-" * 60)
-    
-    # Ввод сообщения
     print("\nВыберите источник сообщения:")
     print("1 - Ввод в консоли")
     print("2 - Чтение из файла (input.txt)")
-    choice = input("Ваш выбор: ").strip()
-    
+    choice = input("Ваш выбор:").strip()
+
     if choice == '1':
-        text = input("\nВведите сообщение: ").strip()
+        text = input("\nВведите сообщение:").strip()
     elif choice == '2':
         try:
             with open('input.txt', 'r', encoding='utf-8') as f:
@@ -183,34 +169,29 @@ def sign_message():
     else:
         print("[Ошибка] Неверный выбор")
         return
-    
+
     if not text:
         print("[Ошибка] Сообщение не может быть пустым")
         return
-    
-    # Подготовка и хеширование
+
     prepared = prepare_text(text)
     print(f"\n[Инфо] Сообщение подготовлено: {prepared[:50]}{'...' if len(prepared) > 50 else ''}")
-    
-    # Ввод параметров схемы
+
     print("\nВведите параметры схемы Эль-Гамаля:")
-    p = input_int("  Простой модуль p (> 32): ", low=32, is_prime_needed=True)
-    
+    p = input_int("  Простой модуль p (> 32):", low=32, is_prime_needed=True)
+
     h = hash_message(prepared, p)
     print(f"[Инфо] Хеш сообщения h = {h}")
-    
-    g = input_int(f"  Генератор g (1 < g < {p}): ", low=1, high=p)
-    x = input_int(f"  Секретный ключ x (1 < x < {p-1}): ", low=1, high=p-1)
-    
-    # Вычисление открытого ключа
+
+    g = input_int(f"  Генератор g (1 < g < {p}):", low=1, high=p)
+    x = input_int(f"  Секретный ключ x (1 < x < {p-1}):", low=1, high=p-1)
+
     y = pow(g, x, p)
     print(f"\n[Инфо] Открытый ключ y = g^x mod p = {y}")
-    
-    # Генерация подписи
+
     print("\n[Инфо] Генерация подписи...")
     a, b, k = elgamal_sign(h, p, g, x)
-    
-    # Вывод результата
+
     print("\n" + "=" * 60)
     print("РЕЗУЛЬТАТ ПОДПИСАНИЯ")
     print("=" * 60)
@@ -225,9 +206,8 @@ def sign_message():
     print(f"\n[Важно] Сохраните параметры и подпись для проверки!")
     print(f"[Важно] Секретный ключ x = {x} НЕ передавайте никому!")
     print("=" * 60)
-    
-    # Опционально: сохранение в файл
-    save = input("\nСохранить результат в файл? (д/н): ").strip().lower()
+
+    save = input("\nСохранить результат в файл? (д/н):").strip().lower()
     if save in ['д', 'y', 'yes']:
         try:
             with open('signature.txt', 'w', encoding='utf-8') as f:
@@ -241,40 +221,33 @@ def sign_message():
         except Exception as e:
             print(f"[Ошибка] Не удалось сохранить файл: {e}")
 
-
 def verify_signature():
     """Режим проверки подписи"""
     print("\n" + "-" * 60)
     print("ПРОВЕРКА ПОДПИСИ")
     print("-" * 60)
-    
-    # Ввод сообщения
     print("\nВведите исходное сообщение для проверки:")
-    text = input("Сообщение: ").strip()
+    text = input("Сообщение:").strip()
     if not text:
         print("[Ошибка] Сообщение не может быть пустым")
         return
-    
-    # Ввод параметров
+
     print("\nВведите параметры схемы:")
-    p = input_int("  Простой модуль p: ", is_prime_needed=True)
-    g = input_int(f"  Генератор g (1 < g < {p}): ", low=1, high=p)
-    y = input_int(f"  Открытый ключ y (1 < y < {p}): ", low=1, high=p)
-    
-    # Ввод подписи
+    p = input_int("  Простой модуль p:", is_prime_needed=True)
+    g = input_int(f"  Генератор g (1 < g < {p}):", low=1, high=p)
+    y = input_int(f"  Открытый ключ y (1 < y < {p}):", low=1, high=p)
+
     print("\nВведите компоненты подписи:")
-    a = input_int("  a = ")
-    b = input_int("  b = ")
-    
-    # Вычисление хеша и проверка
+    a = input_int("  a =")
+    b = input_int("  b =")
+
     prepared = prepare_text(text)
     h = hash_message(prepared, p)
     print(f"\n[Инфо] Вычисленный хеш сообщения: h = {h}")
-    
+
     print("\n[Инфо] Проверка подписи...")
     valid = elgamal_verify(h, a, b, p, g, y)
-    
-    # Вывод результата
+
     print("\n" + "=" * 60)
     print("РЕЗУЛЬТАТ ПРОВЕРКИ")
     print("=" * 60)
@@ -289,9 +262,7 @@ def verify_signature():
         print("  • Параметры схемы указаны неверно")
     print("=" * 60)
 
-
 def main():
-    """Главная функция программы"""
     print("=" * 60)
     print("ЦИФРОВАЯ ПОДПИСЬ ELGAMAL")
     print("=" * 60)
@@ -301,13 +272,11 @@ def main():
     print("  • Подпись: (a, b), где a = g^k mod p, b = (h - x·a)·k⁻¹ mod (p-1)")
     print("  • Проверка: y^a · a^b ≡ g^h (mod p)")
     print("  • Сообщение передаётся открыто, подпись удостоверяет его подлинность")
-    
-    # Демонстрация при первом запуске
-    demo = input("\nПоказать демонстрацию работы? (д/н): ").strip().lower()
+
+    demo = input("\nПоказать демонстрацию работы? (д/н):").strip().lower()
     if demo in ['д', 'y', 'yes', '']:
         demo_signature()
-    
-    # Главный цикл
+
     while True:
         print("\n" + "-" * 40)
         print("МЕНЮ")
@@ -317,7 +286,7 @@ def main():
         print("0 - Выход")
         print("-" * 40)
         
-        choice = input("\nВаш выбор: ").strip()
+        choice = input("\nВаш выбор:").strip()
         
         if choice == '0':
             print("\n[Инфо] Программа завершена")
@@ -329,7 +298,6 @@ def main():
             verify_signature()
         else:
             print("[Ошибка] Неверный выбор, попробуйте снова")
-
 
 if __name__ == "__main__":
     main()

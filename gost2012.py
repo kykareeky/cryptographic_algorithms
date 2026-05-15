@@ -1,19 +1,17 @@
 import random
 
-# ══════════════════════════════════════════════════════════════
-# ГОСТ Р 34.10-2012 (ЭЛЛИПТИЧЕСКАЯ ЦИФРОВАЯ ПОДПИСЬ)
-# ══════════════════════════════════════════════════════════════
-
+# [КРИПТО] Алфавит для преобразования текста в числа
 ALPHABET = "абвгдежзийклмнопрстуфхцчшщъыьэюя"
 
 def preprocess(text):
-    """Заменяет пробелы, запятые и точки на маркеры. Остальные символы игнорируются."""
+    """Заменяет пробелы, запятые и точки на маркеры."""
     text = text.lower().replace('ё', 'е')
     text = text.replace(' ', 'прб').replace(',', 'зпт').replace('.', 'тчк')
     return text
 
 def compute_hash(text, q):
-    """Учебная хеш-функция: h = Σ(idx+1)² mod q"""
+    # [КРИПТО] Хеширование сообщения: превращает текст в число по модулю q.
+    # Суммирует позиции букв, возводит в квадрат на каждом шаге для перемешивания данных.
     h = 0
     for ch in text:
         idx = ALPHABET.find(ch)
@@ -22,7 +20,6 @@ def compute_hash(text, q):
     return h if h != 0 else 1
 
 def is_prime(n):
-    """Проверка числа на простоту"""
     if n < 2: return False
     if n == 2: return True
     if n % 2 == 0: return False
@@ -33,7 +30,6 @@ def is_prime(n):
     return True
 
 def input_int(prompt, min_val=None, max_val=None, is_prime_needed=False):
-    """Безопасный ввод целого числа с проверками"""
     while True:
         try:
             val = int(input(prompt).strip())
@@ -51,7 +47,6 @@ def input_int(prompt, min_val=None, max_val=None, is_prime_needed=False):
             print("[Ошибка] Введите целое число")
 
 def input_point(prompt):
-    """Ввод точки в формате x y или (x, y)"""
     while True:
         try:
             s = input(prompt).strip().replace('(', '').replace(')', '').replace(',', ' ')
@@ -64,22 +59,18 @@ def input_point(prompt):
             print("[Ошибка] Введите целые числа")
 
 def is_on_curve(P, a, b, p):
-    """Проверка принадлежности точки кривой y² ≡ x³ + ax + b (mod p)"""
     if P is None: return True
     x, y = P
     return (y * y) % p == (x * x * x + a * x + b) % p
 
-# ══════════════════════════════════════════════════════════════
-# ЭЛЛИПТИЧЕСКАЯ АРИФМЕТИКА
-# ══════════════════════════════════════════════════════════════
-
 def point_add(P1, P2, a, p):
-    """Сложение двух точек на кривой"""
+    # [КРИПТО] Сложение двух точек на эллиптической кривой.
+    # Если точки совпадают или симметричны относительно оси X, используется особая формула.
+    # Иначе применяется формула секущей для нахождения третьей точки пересечения с кривой.
     if P1 is None: return P2
     if P2 is None: return P1
     x1, y1 = P1
     x2, y2 = P2
-    
     if x1 == x2 and (y1 + y2) % p == 0:
         return None
     if P1 == P2:
@@ -93,7 +84,9 @@ def point_add(P1, P2, a, p):
     return (x3, y3)
 
 def scalar_mult(k, P, a, p):
-    """Умножение точки на скаляр (алгоритм double-and-add)"""
+    # [КРИПТО] Умножение точки на число (скаляр). Использует алгоритм "двой и прибавь".
+    # Разбивает число k на биты, последовательно удваивая точку и прибавляя её к результату,
+    # если текущий бит равен 1. Позволяет быстро вычислять k*P без k сложений.
     result = None
     Q = P
     while k > 0:
@@ -103,51 +96,49 @@ def scalar_mult(k, P, a, p):
         k >>= 1
     return result
 
-# ══════════════════════════════════════════════════════════════
-# ЛОГИКА ГОСТ Р 34.10-2012
-# ══════════════════════════════════════════════════════════════
-
 def sign_mode():
     print("\n" + "-" * 60)
     print("ФОРМИРОВАНИЕ ПОДПИСИ")
     print("-" * 60)
-    
-    msg = input("\nВведите сообщение: ").strip()
+    msg = input("\nВведите сообщение:").strip()
     if not msg:
         print("[Ошибка] Сообщение не может быть пустым")
         return
-    
+
     print("\n[Инфо] Введите параметры кривой и ключи:")
-    p = input_int("  Простой модуль p: ", min_val=2, is_prime_needed=True)
-    a = input_int(f"  Параметр a (0 <= a < {p}): ", min_val=0, max_val=p)
-    b = input_int(f"  Параметр b (0 <= b < {p}): ", min_val=0, max_val=p)
-    
+    p = input_int("  Простой модуль p:", min_val=2, is_prime_needed=True)
+    a = input_int(f"  Параметр a (0 <= a < {p}):", min_val=0, max_val=p)
+    b = input_int(f"  Параметр b (0 <= b < {p}):", min_val=0, max_val=p)
+
     if (4 * a**3 + 27 * b**2) % p == 0:
         print("[Ошибка] Кривая вырождена (4a³ + 27b² ≡ 0 mod p). Введите другие a, b")
         return
         
-    G = input_point("  Базовая точка G (x y): ")
+    G = input_point("  Базовая точка G (x y):")
     if not is_on_curve(G, a, b, p):
         print(f"[Ошибка] Точка {G} не лежит на кривой")
         return
         
-    q = input_int(f"  Порядок подгруппы q (простое, 1 < q < p): ", min_val=1, max_val=p, is_prime_needed=True)
+    q = input_int(f"  Порядок подгруппы q (простое, 1 < q < p):", min_val=1, max_val=p, is_prime_needed=True)
     if scalar_mult(q, G, a, p) is not None:
         print("[Внимание] q * G != O. Проверьте корректность порядка q.")
         
-    d = input_int(f"  Секретный ключ d (1 < d < {q}): ", min_val=1, max_val=q-1)
-    
+    d = input_int(f"  Секретный ключ d (1 < d < {q}):", min_val=1, max_val=q-1)
+
     print("\n[Инфо] Генерация подписи...")
     e = compute_hash(preprocess(msg), q)
     Q = scalar_mult(d, G, a, p)
     print(f"[Инфо] Открытый ключ Q = d * G: {Q}")
-    
+
+    # [КРИПТО] Цикл подбора случайного k, пока не получим валидные компоненты подписи r и s.
     while True:
         k = random.randint(1, q - 1)
         R = scalar_mult(k, G, a, p)
         if R is None: continue
+        # [КРИПТО] r = координата X точки R по модулю q
         r = R[0] % q
         if r == 0: continue
+        # [КРИПТО] s = (r*d + k*e) mod q. Связывает хеш сообщения, секретный ключ и случайное k.
         s = (r * d + k * e) % q
         if s == 0: continue
         break
@@ -173,30 +164,31 @@ def verify_mode():
     print("\n" + "-" * 60)
     print("ПРОВЕРКА ПОДПИСИ")
     print("-" * 60)
-    
-    msg = input("\nВведите сообщение: ").strip()
+    msg = input("\nВведите сообщение:").strip()
     if not msg:
         print("[Ошибка] Сообщение не может быть пустым")
         return
         
     print("\n[Инфо] Введите параметры для проверки:")
-    p = input_int("  Простой модуль p: ", min_val=2)
-    a = input_int(f"  Параметр a (0 <= a < {p}): ", min_val=0, max_val=p)
-    b = input_int(f"  Параметр b (0 <= b < {p}): ", min_val=0, max_val=p)
-    G = input_point("  Базовая точка G (x y): ")
-    q = input_int(f"  Порядок подгруппы q: ", min_val=1)
-    Q = input_point("  Открытый ключ Q (x y): ")
-    r = input_int("  Параметр подписи r: ")
-    s = input_int("  Параметр подписи s: ")
-    
+    p = input_int("  Простой модуль p:", min_val=2)
+    a = input_int(f"  Параметр a (0 <= a < {p}):", min_val=0, max_val=p)
+    b = input_int(f"  Параметр b (0 <= b < {p}):", min_val=0, max_val=p)
+    G = input_point("  Базовая точка G (x y):")
+    q = input_int(f"  Порядок подгруппы q:", min_val=1)
+    Q = input_point("  Открытый ключ Q (x y):")
+    r = input_int("  Параметр подписи r:")
+    s = input_int("  Параметр подписи s:")
+
     print("\n[Инфо] Проверка подписи...")
     valid = False
     if 0 < r < q and 0 < s < q:
         e = compute_hash(preprocess(msg), q)
         if e != 0:
+            # [КРИПТО] Вычисляем обратный элемент хеша v = e^-1 mod q
             v = pow(e, -1, q)
             z1 = s * v % q
             z2 = (-r * v) % q
+            # [КРИПТО] Восстанавливаем точку C = z1*G + z2*Q. Если подпись верна, C.x mod q должно совпасть с r.
             C = point_add(scalar_mult(z1, G, a, p), scalar_mult(z2, Q, a, p), a, p)
             if C is not None and C[0] % q == r:
                 valid = True
@@ -222,7 +214,6 @@ def main():
     print("\nНазначение: создание и проверка электронной подписи")
     print("Алфавит: 32 русские буквы (ё → е) + маркеры для пробелов и знаков")
     print("Кривая: y² ≡ x³ + ax + b (mod p)")
-    
     while True:
         print("\n" + "-" * 40)
         print("МЕНЮ")
@@ -232,7 +223,7 @@ def main():
         print("0 - Выход")
         print("-" * 40)
         
-        choice = input("\nВаш выбор: ").strip()
+        choice = input("\nВаш выбор:").strip()
         
         if choice == '0':
             print("\n[Инфо] Программа завершена")

@@ -1,29 +1,28 @@
 import hashlib
 import os
 
-ALPHABET = ['а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 
-            'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ъ', 
+ALPHABET = ['а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'й', 'к', 'л', 'м',
+            'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ъ',
             'ы', 'ь', 'э', 'ю', 'я']
-
 PUNCT_WORDS = ['тчк', 'зпт', 'впр', 'вск', 'двтч', 'тчзпт', 'тире', 'скоб', 'скобз', 'квч', 'апстр', 'прб']
 PUNCT_SYMBOLS = ['.', ',', '?', '!', ':', ';', '-', '(', ')', '"', "'", ' ']
-
 PUNCT_WORD_TO_SYMBOL = dict(zip(PUNCT_WORDS, PUNCT_SYMBOLS))
 PUNCT_SYMBOL_TO_WORD = dict(zip(PUNCT_SYMBOLS, PUNCT_WORDS))
-
 CHAR_TO_CODE = {char: i for i, char in enumerate(ALPHABET)}
 CODE_TO_CHAR = {i: char for i, char in enumerate(ALPHABET)}
-
 OUTPUT_DIR = "все шифры"
 
 def ensure_output_dir():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def majority(x, y, z):
+    # [КРИПТО] Функция большинства: определяет, какое значение (0 или 1) встречается чаще среди трёх битов.
+    # Используется для управления тактированием регистров: сдвигаются только те регистры, чей тактовый бит совпадает с результатом.
     return (x & y) | (x & z) | (y & z)
 
 class A5_2:
     def __init__(self, key_bits, frame_bits):
+        # [КРИПТО] Инициализация трёх сдвиговых регистров длины 19, 22 и 23 бита.
         self.R1 = [0] * 19
         self.R2 = [0] * 22
         self.R3 = [0] * 23
@@ -32,38 +31,50 @@ class A5_2:
         self.initialize()
 
     def clock(self, bit=0):
+        # [КРИПТО] Один такт работы генератора: вычисляется бит большинства для управления сдвигом.
         m = majority(self.R1[8], self.R2[10], self.R3[10])
+        
+        # [КРИПТО] Вычисление нового бита для каждого регистра на основе заданных позиций и входного бита.
         fb1 = self.R1[13] ^ self.R1[16] ^ self.R1[17] ^ self.R1[18] ^ bit ^ m ^ 1
         fb2 = self.R2[20] ^ self.R2[21] ^ bit ^ m
         fb3 = self.R3[7] ^ self.R3[20] ^ self.R3[21] ^ self.R3[22] ^ bit ^ m
+        
+        # [КРИПТО] Циклический сдвиг регистров вправо: новый бит вставляется в начало, остальные сдвигаются.
         self.R1 = [fb1] + self.R1[:-1]
         self.R2 = [fb2] + self.R2[:-1]
         self.R3 = [fb3] + self.R3[:-1]
 
     def initialize(self):
+        # [КРИПТО] Загрузка ключа в регистры: последовательно сдвигаем регистры, добавляя биты ключа.
         for b in self.key_bits:
             self.clock(int(b))
+        # [КРИПТО] Загрузка номера кадра: сдвигаем регистры, добавляя биты кадра.
         for b in self.frame_bits:
             self.clock(int(b))
+        # [КРИПТО] Перемешивание состояния: 99 холостых тактов без входных данных для равномерного распределения битов.
         for _ in range(99):
             self.clock()
 
     def keystream_bit(self):
+        # [КРИПТО] Генерация одного бита гаммы: делаем такт и возвращаем XOR последних битов всех трёх регистров.
         self.clock()
         return self.R1[18] ^ self.R2[21] ^ self.R3[22]
 
     def keystream(self, n):
+        # [КРИПТО] Генерация последовательности битов гаммы нужной длины.
         return [self.keystream_bit() for _ in range(n)]
 
 def password_to_key(password: str) -> list[int]:
     hash_bytes = hashlib.sha256(password.encode("utf-8")).digest()
     key_bits = []
+    # [КРИПТО] Преобразование пароля в 64-битный ключ: берём первые 8 байт хеша и превращаем каждый в 8 бит.
     for byte in hash_bytes[:8]:
         key_bits.extend(int(b) for b in format(byte, "08b"))
     return key_bits
 
 def format_key_bits(key_bits):
     result = ""
+    # [КРИПТО] Форматирование битов ключа в читаемый вид (байты через пробел).
     for i in range(0, len(key_bits), 8):
         if i + 8 <= len(key_bits):
             byte = key_bits[i:i+8]
@@ -108,6 +119,7 @@ def text_to_5bit_codes(text):
     text_lower = text_with_punct_words.lower()
     codes = []
     processed_chars = []
+    # [КРИПТО] Цикл кодирования текста: каждая буква превращается в 5-битный код (от 0 до 31).
     for char in text_lower:
         if char in CHAR_TO_CODE:
             codes.append(CHAR_TO_CODE[char])
@@ -120,6 +132,7 @@ def text_to_5bit_codes(text):
 
 def codes_to_text(codes):
     chars = []
+    # [КРИПТО] Цикл обратного преобразования: 5-битные коды возвращаются в буквы.
     for code in codes:
         if 0 <= code < len(ALPHABET):
             chars.append(ALPHABET[code])
@@ -131,12 +144,14 @@ def codes_to_text(codes):
 
 def codes_to_bits(codes):
     bits = []
+    # [КРИПТО] Цикл разбивки 5-битных кодов на отдельные биты для поточного шифрования.
     for code in codes:
         bits.extend(int(b) for b in format(code, '05b'))
     return bits
 
 def bits_to_codes(bits):
     codes = []
+    # [КРИПТО] Цикл сборки битов обратно в 5-битные коды.
     for i in range(0, len(bits), 5):
         if i + 5 <= len(bits):
             code_bits = bits[i:i+5]
@@ -145,6 +160,7 @@ def bits_to_codes(bits):
     return codes
 
 def xor_bits(a, b):
+    # [КРИПТО] Побитовое сложение по модулю 2 (XOR): наложение гаммы на открытый текст или снятие её с шифртекста.
     return [x ^ y for x, y in zip(a, b)]
 
 def get_file_path(filename):
@@ -194,110 +210,112 @@ def verify_decryption(original_text, decrypted_text):
 def main():
     ensure_output_dir()
     original_text = None
-    
     print("=" * 60)
-    print("A5/2 (5 бит на символ)")
+    print("A5/2 (5 бит на символ) ")
     print("=" * 60)
-    
+
     while True:
-        print("\n" + "─" * 40)
-        print("МЕНЮ:")
-        print("1. Зашифровать текст")
-        print("2. Расшифровать текст")
-        print("3. Показать список файлов")
-        print("0. Выход")
+        print("\n " + "─" * 40)
+        print("МЕНЮ: ")
+        print("1. Зашифровать текст ")
+        print("2. Расшифровать текст ")
+        print("3. Показать список файлов ")
+        print("0. Выход ")
         print("─" * 40)
 
         choice = input("Ваш выбор: ")
 
         if choice == "0":
-            print("\nДо свидания!")
+            print("\nДо свидания! ")
             print("=" * 60)
             break
             
         elif choice == "3":
-            print(f"\nФайлы в директории {OUTPUT_DIR}:")
+            print(f"\nФайлы в директории {OUTPUT_DIR}: ")
             try:
                 files = os.listdir(OUTPUT_DIR)
                 if files:
                     for file in sorted(files):
                         filepath = os.path.join(OUTPUT_DIR, file)
                         size = os.path.getsize(filepath)
-                        print(f"   - {file} ({size} байт)")
+                        print(f"   - {file} ({size} байт) ")
                 else:
-                    print("   Директория пуста")
+                    print("   Директория пуста ")
             except FileNotFoundError:
-                print("   Директория не найдена")
+                print("   Директория не найдена ")
             continue
 
         key_input = input("\nВведите пароль или 64 бита ключа: ")
         
         if len(key_input) == 64 and all(bit in '01' for bit in key_input):
             key_bits = [int(bit) for bit in key_input]
-            print(" Используется прямой 64-битный ключ")
+            print(" Используется прямой 64-битный ключ ")
         else:
             key_bits = password_to_key(key_input)
-            print(f" Пароль преобразован в ключ: {format_key_bits(key_bits)}")
+            print(f" Пароль преобразован в ключ: {format_key_bits(key_bits)} ")
         
         frame_str = input("Введите номер кадра (22 бита): ")
         
         if len(frame_str) != 22 or not all(bit in '01' for bit in frame_str):
-            print(" Номер кадра должен содержать 22 бита (только 0 и 1)!")
+            print(" Номер кадра должен содержать 22 бита (только 0 и 1)! ")
             continue
 
         frame_bits = frame_to_bits(frame_str)
-        print(f"Номер кадра: {frame_str}")
+        print(f"Номер кадра: {frame_str} ")
 
         if choice == "1":
-            print("\n" + "-" * 40)
-            print("ШИФРОВАНИЕ ТЕКСТА")
+            print("\n " + "-" * 40)
+            print("ШИФРОВАНИЕ ТЕКСТА ")
             print("-" * 40)
-            print("Введите открытый текст (для завершения введите пустую строку):")
+            print("Введите открытый текст (для завершения введите пустую строку): ")
             lines = []
             while True:
                 line = input()
-                if line == "":
+                if line == " ":
                     break
                 lines.append(line)
             text = '\n'.join(lines)
             
             if not text:
-                print(" Текст не введен")
+                print(" Текст не введен ")
                 continue
             
             original_text = text
             
-            print(f"\nОбработка текста длиной {len(text)} символов...")
+            print(f"\nОбработка текста длиной {len(text)} символов... ")
             
-            print("\nПример преобразования знаков препинания:")
-            example_text = text[:100] + "..." if len(text) > 100 else text
+            print("\nПример преобразования знаков препинания: ")
+            example_text = text[:100] + "... " if len(text) > 100 else text
             example_converted = text_to_punct_words(example_text)
-            print(f"   Исходный: {example_text}")
-            print(f"   После замены: {example_converted}")
+            print(f"   Исходный: {example_text} ")
+            print(f"   После замены: {example_converted} ")
             
             codes, processed_text, text_with_punct = text_to_5bit_codes(text)
             chars_count = len(codes)
-            print(f"\nКоличество символов после обработки: {chars_count}")
+            print(f"\nКоличество символов после обработки: {chars_count} ")
             
             bits = codes_to_bits(codes)
             bits_count = len(bits)
-            print(f"Всего бит для шифрования: {bits_count}")
+            print(f"Всего бит для шифрования: {bits_count} ")
             
-            print("\nПроцесс шифрования...")
+            print("\nПроцесс шифрования... ")
             cipher = A5_2(key_bits, frame_bits)
             
             chunk_size = 10000
             cipher_bits = []
             
+            # [КРИПТО] Цикл поблочного шифрования: данные обрабатываются кусками по 10000 бит.
             for i in range(0, bits_count, chunk_size):
                 end = min(i + chunk_size, bits_count)
                 chunk_plain = bits[i:end]
+                # [КРИПТО] Генерация гаммы нужной длины для текущего куска данных.
                 gamma = cipher.keystream(len(chunk_plain))
+                # [КРИПТО] Наложение гаммы на открытый текст через XOR.
                 chunk_cipher = xor_bits(chunk_plain, gamma)
                 cipher_bits.extend(chunk_cipher)
-                print_progress(end, bits_count, "Шифрование")
+                print_progress(end, bits_count, "Шифрование ")
             
-            cipher_text = "".join(map(str, cipher_bits))
+            cipher_text = " ".join(map(str, cipher_bits))
             cipher_file = save_to_file("cipher_text_A5_2.txt", cipher_text)
 
             info_content = f"""=== ИНФОРМАЦИЯ О ШИФРОВАНИИ (A5/2) ===
@@ -305,24 +323,20 @@ def main():
 Номер кадра: {frame_str}
 Количество символов: {chars_count}
 Количество бит: {bits_count}
-
 ИСХОДНЫЙ ТЕКСТ:
 {text}
-
 ТЕКСТ СО ВСТАВЛЕННЫМИ СЛОВАМИ-ЗНАКАМИ:
 {text_with_punct}
-
 5-БИТНЫЕ КОДЫ:
 {codes}
 """
             info_file = save_to_file("cipher_info_A5_2.txt", info_content)
-
-            print(f"\n Шифротекст сохранён: {cipher_file}")
-            print(f" Информация сохранена: {info_file}")
+            print(f"\n Шифротекст сохранён: {cipher_file} ")
+            print(f" Информация сохранена: {info_file} ")
 
         elif choice == "2":
-            print("\n" + "-" * 40)
-            print("РАСШИФРОВАНИЕ ТЕКСТА")
+            print("\n " + "-" * 40)
+            print("РАСШИФРОВАНИЕ ТЕКСТА ")
             print("-" * 40)
             
             filename = input("Введите имя файла с шифротекстом: ")
@@ -334,31 +348,34 @@ def main():
                 cipher_text = load_from_file(filename)
                 cipher_bits = [int(bit) for bit in cipher_text.strip() if bit in '01']
                 bits_count = len(cipher_bits)
-                print(f"Загружено {bits_count} бит из файла: {filename}")
+                print(f"Загружено {bits_count} бит из файла: {filename} ")
                 
             except FileNotFoundError:
-                print(f" Файл {filename} не найден")
+                print(f" Файл {filename} не найден ")
                 continue
             except ValueError as e:
-                print(f" Ошибка чтения файла: {e}")
+                print(f" Ошибка чтения файла: {e} ")
                 continue
 
-            print("\nПроцесс расшифровки...")
+            print("\nПроцесс расшифровки... ")
             cipher = A5_2(key_bits, frame_bits)
             
             chunk_size = 10000
             plain_bits = []
             
+            # [КРИПТО] Цикл поблочного расшифрования: идентичен шифрованию благодаря свойству XOR.
             for i in range(0, bits_count, chunk_size):
                 end = min(i + chunk_size, bits_count)
                 chunk_cipher = cipher_bits[i:end]
+                # [КРИПТО] Генерация идентичной гаммы для текущего куска шифртекста.
                 gamma = cipher.keystream(len(chunk_cipher))
+                # [КРИПТО] Снятие гаммы с шифртекста через XOR, получение исходных битов.
                 chunk_plain = xor_bits(chunk_cipher, gamma)
                 plain_bits.extend(chunk_plain)
-                print_progress(end, bits_count, "Расшифровка")
+                print_progress(end, bits_count, "Расшифровка ")
 
             codes = bits_to_codes(plain_bits)
-            print(f"\nВосстановлено кодов: {len(codes)}")
+            print(f"\nВосстановлено кодов: {len(codes)} ")
             
             text_with_punct = codes_to_text(codes)
 
@@ -371,19 +388,17 @@ def main():
 Количество бит: {bits_count}
 Количество символов: {len(codes)}
 5-битные коды: {codes}
-
 РАСШИФРОВАННЫЙ ТЕКСТ:
 {text_with_punct}
 """
             info_file = save_to_file("decrypt_info_A5_2.txt", info_content)
-
-            print(f"\n Расшифрованный текст сохранён: {decrypted_file}")
-            print(f" Информация сохранена: {info_file}")
+            print(f"\n Расшифрованный текст сохранён: {decrypted_file} ")
+            print(f" Информация сохранена: {info_file} ")
             
-            print("\n" + "-" * 40)
-            print("ИТОГОВЫЙ РАСШИФРОВАННЫЙ ТЕКСТ")
+            print("\n " + "-" * 40)
+            print("ИТОГОВЫЙ РАСШИФРОВАННЫЙ ТЕКСТ ")
             print("-" * 40)
-            print(text_with_punct[:500] + ("..." if len(text_with_punct) > 500 else ""))
+            print(text_with_punct[:500] + ("... " if len(text_with_punct) > 500 else ""))
             print("-" * 40)
             
             if original_text:
